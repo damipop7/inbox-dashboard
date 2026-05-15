@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dami's Inbox Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f8;
+    --muted: #7070a0;
+    --accent: #7c6ef7;
+    --accent2: #5de8c0;
+    --job: #16a766;
+    --news: #a479e2;
+    --events: #ffad47;
+    --action: #ff6b6b;
+    --work: #4a9eff;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,110,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,110,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+  .orb1 { width: 500px; height: 500px; background: var(--accent); top: -150px; right: -100px; }
+  .orb2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; left: -100px; }
+
+  .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  header {
+    position: sticky; top: 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    z-index: 100;
+  }
+  .header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px;
+    max-width: 1100px; margin: 0 auto;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 10px var(--accent2); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .last-updated { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .btn-refresh {
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+    padding: 7px 16px; border-radius: 6px; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.05em;
+  }
+  .btn-refresh:hover { background: var(--accent); border-color: var(--accent); }
+
+  /* Hero section */
+  .hero { padding: 48px 0 32px; }
+  .hero-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 12px; }
+  .hero-title { font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.1; margin-bottom: 8px; }
+  .hero-title span { color: var(--accent); }
+  .hero-sub { font-size: 14px; color: var(--muted); font-weight: 400; }
+
+  /* Stats row */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 32px 0; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .stat-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent-color, var(--accent));
+    opacity: 0.8;
+  }
+  .stat-card[data-color="green"]  { --accent-color: var(--job); }
+  .stat-card[data-color="purple"] { --accent-color: var(--news); }
+  .stat-card[data-color="orange"] { --accent-color: var(--events); }
+  .stat-card[data-color="red"]    { --accent-color: var(--action); }
+  .stat-card[data-color="blue"]   { --accent-color: var(--work); }
+  .stat-card[data-color="teal"]   { --accent-color: var(--accent2); }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; margin-bottom: 6px; color: var(--accent-color, var(--accent)); }
+  .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+  /* Section heading */
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin: 40px 0 16px; }
+  .section-title { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; display: block; width: 16px; height: 1px; background: var(--muted); }
+  .section-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  /* Email grid */
+  .email-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .email-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.2s, transform 0.2s, background 0.2s;
+    cursor: default;
+    position: relative;
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .email-card:hover { border-color: var(--border2); transform: translateY(-2px); background: var(--surface2); }
+  .email-card.unread::after {
+    content: '';
+    position: absolute; top: 14px; right: 14px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 6px var(--accent2);
+  }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .card-sender { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+  .card-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+  .card-subject { font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-snippet { font-size: 12px; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .tag-job     { background: rgba(22,167,102,0.15); color: var(--job); }
+  .tag-news    { background: rgba(164,121,226,0.15); color: var(--news); }
+  .tag-events  { background: rgba(255,173,71,0.15); color: var(--events); }
+  .tag-action  { background: rgba(255,107,107,0.15); color: var(--action); }
+  .tag-work    { background: rgba(74,158,255,0.15); color: var(--work); }
+  .tag-account { background: rgba(124,110,247,0.15); color: var(--accent); }
+  .tag-unread  { background: rgba(93,232,192,0.1); color: var(--accent2); }
+
+  /* Priority banner */
+  .priority-banner {
+    background: linear-gradient(135deg, rgba(124,110,247,0.1), rgba(93,232,192,0.08));
+    border: 1px solid rgba(124,110,247,0.3);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 10px;
+    display: flex; align-items: flex-start; gap: 16px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .priority-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .priority-body {}
+  .priority-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 4px; }
+  .priority-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .priority-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Donut chart area */
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+  @media(max-width: 600px) { .chart-row { grid-template-columns: 1fr; } }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+  }
+  .chart-title { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  canvas { flex-shrink: 0; }
+  .legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-name { color: var(--muted); flex: 1; }
+  .legend-val { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); font-weight: 500; }
+
+  /* Bar chart */
+  .bar-list { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-label { font-size: 11px; color: var(--muted); width: 90px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+  .bar-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); width: 20px; text-align: right; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    margin-top: 60px;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  footer span { color: var(--accent2); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      DAMI'S INBOX
+    </div>
+    <div class="header-right">
+      <div class="last-updated">Last synced: <span id="sync-time">—</span></div>
+      <button class="btn-refresh" onclick="location.reload()">↺ Refresh</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-label">Email Intelligence Dashboard</div>
+    <h1 class="hero-title">Good morning, <span>Dami</span> 👋</h1>
+    <p class="hero-sub">Here's what's happening in your inbox today — May 14, 2026</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card" data-color="teal">
+      <div class="stat-num">20</div>
+      <div class="stat-label">Total emails</div>
+    </div>
+    <div class="stat-card" data-color="red">
+      <div class="stat-num">18</div>
+      <div class="stat-label">Unread</div>
+    </div>
+    <div class="stat-card" data-color="blue">
+      <div class="stat-num">1</div>
+      <div class="stat-label">Needs reply</div>
+    </div>
+    <div class="stat-card" data-color="green">
+      <div class="stat-num">6</div>
+      <div class="stat-label">Job alerts</div>
+    </div>
+    <div class="stat-card" data-color="purple">
+      <div class="stat-num">5</div>
+      <div class="stat-label">Newsletters</div>
+    </div>
+    <div class="stat-card" data-color="orange">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Events</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="chart-row">
+    <div class="chart-card">
+      <div class="chart-title">Inbox breakdown</div>
+      <div class="donut-wrap">
+        <canvas id="donut" width="100" height="100"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#16a766"></div><span class="legend-name">Job Alerts</span><span class="legend-val">6</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#a479e2"></div><span class="legend-name">Newsletters</span><span class="legend-val">5</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ffad47"></div><span class="legend-name">Events</span><span class="legend-val">3</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#4a9eff"></div><span class="legend-name">Work/Action</span><span class="legend-val">2</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7c6ef7"></div><span class="legend-name">Other</span><span class="legend-val">4</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Top senders today</div>
+      <div class="bar-list">
+        <div class="bar-row"><span class="bar-label">LinkedIn</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#4a9eff"></div></div><span class="bar-count">2</span></div>
+        <div class="bar-row"><span class="bar-label">Eventbrite</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#ffad47"></div></div><span class="bar-count">2</span></div>
+        <div class="bar-row"><span class="bar-label">Wellfound</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:#16a766"></div></div><span class="bar-count">1</span></div>
+        <div class="bar-row"><span class="bar-label">Kaggle</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:#a479e2"></div></div><span class="bar-count">1</span></div>
+        <div class="bar-row"><span class="bar-label">KC Current</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:#ff6b6b"></div></div><span class="bar-count">1</span></div>
+        <div class="bar-row"><span class="bar-label">Marriott</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:#16a766"></div></div><span class="bar-count">1</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Priority -->
+  <div class="section-head">
+    <span class="section-title">Priority inbox</span>
+    <span class="section-count">2 items</span>
+  </div>
+
+  <div class="priority-banner">
+    <div class="priority-icon">🏟️</div>
+    <div class="priority-body">
+      <div class="priority-label">Needs your reply</div>
+      <div class="priority-title">RE: Acceptance — Data Strategy &amp; Analytics Internship</div>
+      <div class="priority-desc">Carter Martin (cc: Amanda Ressel) replied to your internship acceptance with schedule details: June 1–Nov 20, ~29 hrs/week. They're setting up a routine since you won't be in every day.</div>
+    </div>
+  </div>
+
+  <div class="priority-banner" style="border-color:rgba(255,107,107,0.25);background:linear-gradient(135deg,rgba(255,107,107,0.08),rgba(255,107,107,0.04))">
+    <div class="priority-icon">🔐</div>
+    <div class="priority-body">
+      <div class="priority-label" style="color:#ff6b6b">Account alert</div>
+      <div class="priority-title">Set up your Veho account</div>
+      <div class="priority-desc">Password reset email from Veho (support@shipveho.com). Verify this was requested by you — if not, ignore it.</div>
+    </div>
+  </div>
+
+  <!-- Job Alerts -->
+  <div class="section-head">
+    <span class="section-title" style="--c:var(--job)">Job alerts</span>
+    <span class="section-count">6 emails</span>
+  </div>
+  <div class="email-grid">
+    <div class="email-card unread" style="animation-delay:0.05s">
+      <div class="card-top"><span class="card-sender">Wellfound</span><span class="card-date">Today, 1:49 PM</span></div>
+      <div class="card-subject">New job: Healthcare Operations Associate at Wanpanel, and 10 more matches</div>
+      <div class="card-snippet">Hi Dami! I've found 11 new jobs matching your alert preferences.</div>
+      <div class="card-tags"><span class="tag tag-job">Job Alerts</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.1s">
+      <div class="card-top"><span class="card-sender">LinkedIn</span><span class="card-date">Today, 1:17 PM</span></div>
+      <div class="card-subject">Data Scientist, Early Career at Jobright.ai</div>
+      <div class="card-snippet">Jobright is your personal AI job search agent…</div>
+      <div class="card-tags"><span class="tag tag-job">Job Alerts</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.15s">
+      <div class="card-top"><span class="card-sender">LinkedIn</span><span class="card-date">Today, 1:12 PM</span></div>
+      <div class="card-subject">Teamworks is hiring for a Sports role</div>
+      <div class="card-snippet">"data analyst" — sports analytics opportunity.</div>
+      <div class="card-tags"><span class="tag tag-job">Job Alerts</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.2s">
+      <div class="card-top"><span class="card-sender">Marriott International</span><span class="card-date">Today, 7:16 AM</span></div>
+      <div class="card-subject">Job Opportunities at Marriott International</div>
+      <div class="card-snippet">Hello Oluwadamilola, FLEX Sr. Manager - Growth Partner Technology Management…</div>
+      <div class="card-tags"><span class="tag tag-job">Job Alerts</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.25s">
+      <div class="card-top"><span class="card-sender">Oak Ridge Nat'l Lab</span><span class="card-date">Today, 3:11 AM</span></div>
+      <div class="card-subject">New jobs posted from jobs.ornl.gov</div>
+      <div class="card-snippet">Your job alert matched the following jobs from ORNL talent community.</div>
+      <div class="card-tags"><span class="tag tag-job">Job Alerts</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.3s">
+      <div class="card-top"><span class="card-sender">Teamwork Online</span><span class="card-date">May 13, 9:05 PM</span></div>
+      <div class="card-subject">Be An Early Applicant: The Miami Dolphins are HIRING!</div>
+      <div class="card-snippet">Lifecycle Marketing Manager role — sports industry opportunity.</div>
+      <div class="card-tags"><span class="tag tag-job">Job Alerts</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+  </div>
+
+  <!-- Newsletters -->
+  <div class="section-head">
+    <span class="section-title">Newsletters</span>
+    <span class="section-count">5 emails</span>
+  </div>
+  <div class="email-grid">
+    <div class="email-card unread" style="animation-delay:0.05s">
+      <div class="card-top"><span class="card-sender">POCIT Weekly</span><span class="card-date">Today, 1:01 PM</span></div>
+      <div class="card-subject">Byron Allen Buying Buzzfeed, Taking Over As CEO</div>
+      <div class="card-snippet">The POCIT Weekly — May 14th, 2026. Kevin Hart scaling back role at Hartbeat + more.</div>
+      <div class="card-tags"><span class="tag tag-news">Newsletter</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.1s">
+      <div class="card-top"><span class="card-sender">Total Football</span><span class="card-date">Today, 9:33 AM</span></div>
+      <div class="card-subject">How To Coach Crossing – Tactical Theory</div>
+      <div class="card-snippet">Tactical theory on coaching crossing, elite football's key weapon + scout report on Jordan James.</div>
+      <div class="card-tags"><span class="tag tag-news">Newsletter</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.15s">
+      <div class="card-top"><span class="card-sender">Feedcoyote</span><span class="card-date">Today, 6:31 AM</span></div>
+      <div class="card-subject">🎉 Feedcoyote is now 200,000+ Freelancers &amp; SMBs Stronger</div>
+      <div class="card-snippet">Today, more than 200,000 freelancers &amp; SMBs are now part of Feedcoyote.</div>
+      <div class="card-tags"><span class="tag tag-news">Newsletter</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.2s">
+      <div class="card-top"><span class="card-sender">Kaggle</span><span class="card-date">Today, 2:18 AM</span></div>
+      <div class="card-subject">5 Day AI Agents: Build a Winning Agent in Our New Capstone</div>
+      <div class="card-snippet">Build an AI agent that can compete in a dynamic simulation — intensive vibecoding course with Google.</div>
+      <div class="card-tags"><span class="tag tag-news">Newsletter</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.25s">
+      <div class="card-top"><span class="card-sender">Built In</span><span class="card-date">May 13, 5:26 PM</span></div>
+      <div class="card-subject">This $10K AI School Promises to Future-Proof Your Career</div>
+      <div class="card-snippet">Editors' Picks — AI, Edtech, and the future of career readiness.</div>
+      <div class="card-tags"><span class="tag tag-news">Newsletter</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+  </div>
+
+  <!-- Events -->
+  <div class="section-head">
+    <span class="section-title">Events</span>
+    <span class="section-count">3 emails</span>
+  </div>
+  <div class="email-grid">
+    <div class="email-card unread" style="animation-delay:0.05s">
+      <div class="card-top"><span class="card-sender">Eventbrite</span><span class="card-date">May 13, 8:50 PM</span></div>
+      <div class="card-subject">Just added! Chaotic Singles Salsa Night! (Chicago)</div>
+      <div class="card-snippet">Chaotic Singles Party just added a new event in Chicago.</div>
+      <div class="card-tags"><span class="tag tag-events">Events</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.1s">
+      <div class="card-top"><span class="card-sender">Eventbrite</span><span class="card-date">May 13, 8:46 PM</span></div>
+      <div class="card-subject">Just added! Chaotic Singles Salsa Night! (San Francisco)</div>
+      <div class="card-snippet">Chaotic Singles Party just added a new event in San Francisco.</div>
+      <div class="card-tags"><span class="tag tag-events">Events</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.15s">
+      <div class="card-top"><span class="card-sender">Eventbrite / IBM</span><span class="card-date">May 13, 7:14 PM</span></div>
+      <div class="card-subject">IBM USA College &amp; University Student Tech Talk Wednesdays</div>
+      <div class="card-snippet">Join today's call — Teams meeting details from Valinda Kennedy, IBM SkillsBuild.</div>
+      <div class="card-tags"><span class="tag tag-events">Events</span><span class="tag tag-work">Work</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+  </div>
+
+  <!-- Other -->
+  <div class="section-head">
+    <span class="section-title">Other / Account</span>
+    <span class="section-count">4 emails</span>
+  </div>
+  <div class="email-grid">
+    <div class="email-card unread" style="animation-delay:0.05s">
+      <div class="card-top"><span class="card-sender">Google</span><span class="card-date">Today, 2:03 PM</span></div>
+      <div class="card-subject">Security alert — Claude for Gmail access granted</div>
+      <div class="card-snippet">You allowed Claude for Gmail access to some of your Google Account data (damipop7@gmail.com).</div>
+      <div class="card-tags"><span class="tag tag-account">Account</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.1s">
+      <div class="card-top"><span class="card-sender">Anthropic / Claude</span><span class="card-date">Today, 3:00 AM</span></div>
+      <div class="card-subject">A new monthly Agent SDK credit for your plan</div>
+      <div class="card-snippet">You can claim a monthly credit for Agent SDK and non-interactive usage, starting June 15.</div>
+      <div class="card-tags"><span class="tag tag-account">Account</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.15s">
+      <div class="card-top"><span class="card-sender">Idealist</span><span class="card-date">May 13, 10:00 PM</span></div>
+      <div class="card-subject">Volunteer opportunities to inspire</div>
+      <div class="card-snippet">April showers bring May volunteer opportunities — curated picks for you.</div>
+      <div class="card-tags"><span class="tag tag-account">Other</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+    <div class="email-card unread" style="animation-delay:0.2s">
+      <div class="card-top"><span class="card-sender">Awin</span><span class="card-date">May 13, 8:38 PM</span></div>
+      <div class="card-subject">Membership Rejection — advertiser</div>
+      <div class="card-snippet">Your application to join Booking.com North America programme with vtopia has been rejected.</div>
+      <div class="card-tags"><span class="tag tag-account">Account</span><span class="tag tag-unread">Unread</span></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Built with <span>Claude AI</span> · Auto-organized · damipop7@gmail.com
+</footer>
+
+<script>
+  // Set sync time
+  const now = new Date();
+  document.getElementById('sync-time').textContent = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+
+  // Donut chart (pure canvas, no lib needed)
+  const canvas = document.getElementById('donut');
+  const ctx = canvas.getContext('2d');
+  const data = [6, 5, 3, 2, 4];
+  const colors = ['#16a766','#a479e2','#ffad47','#4a9eff','#7c6ef7'];
+  const total = data.reduce((a,b)=>a+b,0);
+  let start = -Math.PI / 2;
+  const cx = 50, cy = 50, r = 40, inner = 26;
+  data.forEach((v, i) => {
+    const slice = (v / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, start + slice);
+    ctx.closePath();
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    start += slice;
+  });
+  // Punch hole
+  ctx.beginPath();
+  ctx.arc(cx, cy, inner, 0, Math.PI * 2);
+  ctx.fillStyle = '#111118';
+  ctx.fill();
+  // Center text
+  ctx.fillStyle = '#f0f0f8';
+  ctx.font = 'bold 14px Syne, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(total, cx, cy);
+
+  // Animate bars on load
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.bar-fill').forEach(b => {
+      const w = b.style.width;
+      b.style.width = '0';
+      setTimeout(() => b.style.width = w, 100);
+    });
+  });
+</script>
+</body>
+</html>
